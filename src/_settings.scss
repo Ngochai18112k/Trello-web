@@ -1,6 +1,13 @@
 @import url("https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600");
 
 $gap: 10px;
+
+//height: appbar + boardbar + boardCotent = 99vh,1vh for scrollbar
+$navbar-app-height: 5vh;
+$navbar-board-height: 6vh;
+$board-content-height: 88vh;
+
+//colors
 $board-bg-color: #0079bf;
 $sommon-element-bg: rgba(255, 255, 255, 0.24);
 
