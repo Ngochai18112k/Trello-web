@@ -1,15 +1,24 @@
 import Column from 'components/Column/Column';
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef, useCallback } from 'react'
 import './BoardContent.scss';
 import { initialData } from 'actions/initialData';
 import { isEmpty } from 'lodash';
 import { mapOrder } from 'utilities/sorts';
 import { applyDrag } from 'utilities/dragDrop';
 import { Container, Draggable } from 'react-smooth-dnd';
-
+import { Container as BContainer, Row, Col, Form, Button } from 'react-bootstrap';
 function BoardContent() {
     const [board, setBoard] = useState({});
     const [columns, setColumns] = useState([]);
+    const [openNewColumn, setOpenNewColumn] = useState(false);
+
+    const newColumnInputRef = useRef(null);
+
+    const [newColumnTitle, setNewColumnTitle] = useState('');
+    const onNewColumnTitleChange = useCallback((e) => {
+        setNewColumnTitle(e.target.value);
+    }, []);
+
 
     useEffect(() => {
         const boardFromDB = initialData.boards.find(board => board.id === 'board-1');
@@ -19,7 +28,14 @@ function BoardContent() {
             //sort column
             setColumns(mapOrder(boardFromDB.columns, boardFromDB.columnOrder, 'id'));
         }
-    }, [])
+    }, []);
+
+    useEffect(() => {
+        if (newColumnInputRef && newColumnInputRef.current) {
+            newColumnInputRef.current.focus();
+            newColumnInputRef.current.select();
+        }
+    }, [openNewColumn]);
 
     if (isEmpty(board)) {
         return <div className="not-found" style={{ 'padding': '10px', 'color': 'white' }}>Board not found</div>
@@ -30,7 +46,7 @@ function BoardContent() {
         newColumns = applyDrag(newColumns, dropResult);
 
         let newBoard = { ...board };
-        newBoard.columnOrder = newBoard.map(c => c.id);
+        newBoard.columnOrder = newColumns.map(c => c.id);
         newBoard.columns = newColumns;
 
         setColumns(newColumns);
@@ -47,6 +63,37 @@ function BoardContent() {
 
             setColumns(newColumns);
         }
+    }
+
+    const toggleOpenNewColumn = () => {
+        setOpenNewColumn(!openNewColumn);
+    }
+
+    const addNewColumn = () => {
+        if (!newColumnTitle) {
+            newColumnInputRef.current.focus();
+            return;
+        }
+
+        const newColumnToAdd = {
+            id: Math.random().toString(36).substr(2, 5), //random 5 char,will remove when we implement code api
+            boardId: board.id,
+            title: newColumnTitle.trim(),
+            cardOrder: [],
+            cards: [],
+        }
+
+        let newColumns = [...columns];
+        newColumns.push(newColumnToAdd);
+
+        let newBoard = { ...board };
+        newBoard.columnOrder = newColumns.map(c => c.id);
+        newBoard.columns = newColumns;
+
+        setColumns(newColumns);
+        setBoard(newBoard);
+        setNewColumnTitle('');
+        toggleOpenNewColumn();
     }
 
     return (
@@ -70,10 +117,42 @@ function BoardContent() {
                     ))
                 }
             </Container>
-            <div className="add-new-column">
-                <i className="fa fa-plus icon"></i>
-                Add another card
-            </div>
+            <BContainer className="bs-container">
+                {!openNewColumn &&
+                    <Row>
+                        <Col className="add-new-column" onClick={toggleOpenNewColumn}>
+                            <i className="fa fa-plus icon"></i>
+                            Add another card
+                        </Col>
+                    </Row>
+                }
+                {openNewColumn &&
+                    <Row>
+                        <Col className="enter-new-column">
+                            <Form.Control
+                                size="sm"
+                                type="text"
+                                placeholder="Enter column title..."
+                                className="input-enter-new-column"
+                                ref={newColumnInputRef}
+                                value={newColumnTitle}
+                                onChange={onNewColumnTitleChange}
+                                onKeyDown={event => (event.key === 'Enter') && addNewColumn()}
+                            />
+                            <Button
+                                variant="success"
+                                size="sm"
+                                onClick={addNewColumn}
+                            >
+                                Add list
+                            </Button>
+                            <span className="cancel-new-column" onClick={toggleOpenNewColumn}>
+                                <i className="fa fa-trash icon"></i>
+                            </span>
+                        </Col>
+                    </Row>
+                }
+            </BContainer>
         </div>
     )
 }
