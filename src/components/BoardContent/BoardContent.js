@@ -26,7 +26,7 @@ function BoardContent() {
 
 
     useEffect(() => {
-        const boardId = '6127ae1f2d1521705fafab4d';
+        const boardId = '6129fc7c2a9963fc8c719d40';
         fetchBoardDetails(boardId).then(board => {
             setBoard(board);
             setColumns(mapOrder(board.columns, board.columnOrder, '_id'));
@@ -107,10 +107,10 @@ function BoardContent() {
         }
         //call API
         createNewColumn(newColumnToAdd).then(column => {
-            let newColumns = [...columns];
+            let newColumns = cloneDeep(columns);
             newColumns.push(column);
 
-            let newBoard = { ...board };
+            let newBoard = cloneDeep(board);
             newBoard.columnOrder = newColumns.map(c => c._id);
             newBoard.columns = newColumns;
 
@@ -124,7 +124,7 @@ function BoardContent() {
     const onUpdateColumnState = (newColumnToUpdate) => {
         const columnIdToUpdate = newColumnToUpdate._id;
 
-        let newColumns = [...columns];
+        let newColumns = cloneDeep(columns);
         const columnIndexToUpdate = newColumns.findIndex(i => i._id === columnIdToUpdate);
 
         if (newColumnToUpdate._destroy) {
@@ -135,7 +135,7 @@ function BoardContent() {
             newColumns.splice(columnIndexToUpdate, 1, newColumnToUpdate);
         }
 
-        let newBoard = { ...board };
+        let newBoard = cloneDeep(board);
         newBoard.columnOrder = newColumns.map(c => c._id);
         newBoard.columns = newColumns;
 
@@ -173,7 +173,7 @@ function BoardContent() {
                     <Row>
                         <Col className="add-new-column" onClick={toggleOpenNewColumn}>
                             <i className="fa fa-plus icon"></i>
-                            Add another card
+                            Add another column
                         </Col>
                     </Row>
                 }

@@ -55,7 +55,7 @@ function Column(props) {
                 _destroy: true
             }
 
-            //call api update column
+            //call api remove column
             updateColumn(newColumn._id, newColumn).then(updatedColumn => {
                 onUpdateColumnState(updatedColumn);
             });
