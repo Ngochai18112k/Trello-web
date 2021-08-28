@@ -1,12 +1,12 @@
 import Column from 'components/Column/Column';
 import React, { useState, useEffect, useRef } from 'react'
 import './BoardContent.scss';
-import { isEmpty } from 'lodash';
+import { isEmpty, cloneDeep } from 'lodash';
 import { mapOrder } from 'utilities/sorts';
 import { applyDrag } from 'utilities/dragDrop';
 import { Container, Draggable } from 'react-smooth-dnd';
 import { Container as BContainer, Row, Col, Form, Button } from 'react-bootstrap';
-import { fetchBoardDetails, createNewColumn } from 'actions/ApiCall';
+import { fetchBoardDetails, createNewColumn, updateBoard, updateColumn, updateCard } from 'actions/ApiCall';
 
 function BoardContent() {
     const [board, setBoard] = useState({});
@@ -27,13 +27,10 @@ function BoardContent() {
 
     useEffect(() => {
         const boardId = '6127ae1f2d1521705fafab4d';
-        fetchBoardDetails(boardId)
-            .then(board => {
-                setBoard(board);
-
-                //sort column
-                setColumns(mapOrder(board.columns, board.columnOrder, '_id'));
-            })
+        fetchBoardDetails(boardId).then(board => {
+            setBoard(board);
+            setColumns(mapOrder(board.columns, board.columnOrder, '_id'));
+        })
     }, []);
 
     useEffect(() => {
@@ -44,30 +41,57 @@ function BoardContent() {
     }, [openNewColumn]);
 
     if (isEmpty(board)) {
-        return <div className="not-found" style={{ 'padding': '10px', 'color': 'white' }}>Board not found</div>
+        return <div className="not-found" style={{ 'padding': '10px', 'color': 'white' }}>Board not found !</div>
     }
 
     const onColumnDrop = (dropResult) => {
-        let newColumns = [...columns];
+        let newColumns = cloneDeep(columns);
         newColumns = applyDrag(newColumns, dropResult);
 
-        let newBoard = { ...board };
+        let newBoard = cloneDeep(board);
         newBoard.columnOrder = newColumns.map(c => c._id);
         newBoard.columns = newColumns;
 
         setColumns(newColumns);
         setBoard(newBoard);
+        //call api update columnOrder in board details
+        updateBoard(newBoard._id, newBoard).catch(() => {
+            setColumns(columns);
+            setBoard(board);
+        });
+
     }
 
     const onCardDrop = (columnId, dropResult) => {
         if (dropResult.removedIndex !== null || dropResult.addedIndex !== null) {
-            let newColumns = [...columns];
+            let newColumns = cloneDeep(columns);
 
             let currentColumn = newColumns.find(c => c._id === columnId);
             currentColumn.cards = applyDrag(currentColumn.cards, dropResult);
             currentColumn.cardOrder = currentColumn.cards.map(i => i._id);
 
             setColumns(newColumns);
+            if (dropResult.removedIndex !== null && dropResult.addedIndex !== null) {
+                /**
+                 * action: move card inside its column
+                 * 1 - call api update cardOrder in current column
+                 */
+                updateColumn(currentColumn._id, currentColumn).catch(() => setColumns(columns));
+            } else {
+                /**
+                 * action: move card beetween two column
+                 */
+                //1 - call api update cardOrder in current column
+                updateColumn(currentColumn._id, currentColumn).catch(() => setColumns(columns));
+
+                if (dropResult.addedIndex !== null) {
+                    let currentCard = cloneDeep(dropResult.payload);
+                    currentCard.columnId = currentColumn._id;
+
+                    //2 - call api update columnId in current card
+                    updateCard(currentCard._id, currentCard);
+                }
+            }
         }
     }
 
